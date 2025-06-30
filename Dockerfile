@@ -1,20 +1,27 @@
-# Usa una imagen base oficial de Node.js (ajusta la versión si es necesario)
-FROM node:18
+# Etapa 1: Construcción
+FROM node:18 AS builder
 
-# Establece el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copia los archivos de dependencias
 COPY package*.json ./
-
-# Instala las dependencias
 RUN npm install
 
-# Copia el resto del código de la aplicación
-COPY . .
+COPY . . 
+RUN npm run build
 
-# Expone el puerto en el que corre la app (ajusta si es necesario)
+# Etapa 2: Producción
+FROM node:18-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/src ./src  # ✅ NECESARIO si usas App Router y src/
+
 EXPOSE 3000
 
-# Comando para iniciar la aplicación
 CMD ["npm", "start"]
