@@ -28,6 +28,7 @@ export async function middleware(request) {
     // Redirigir al dashboard adecuado según su rol
     if (role === 'ESTUDIANTE') {
       return NextResponse.redirect(new URL('/alumno', request.url));
+
     } else if (role === 'PROFESOR') {
       return NextResponse.redirect(new URL('/profesor', request.url));
     }

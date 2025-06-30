@@ -28,9 +28,9 @@ const formLogin = () => {
         setIsVerified(true);
         await new Promise(resolve => setTimeout(resolve, 500));
         if (role === 'ESTUDIANTE') {
-          router.push(`/alumno?userId=${btoa(login.ID)}`);
+          router.push(`/alumno?login=success`);
         } else {
-          router.push('/profesor');
+          router.push('/profesor?login=success');
         }
       } else {
         setError('Credenciales incorrectas');
@@ -46,7 +46,7 @@ const formLogin = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <span className="inline-flex items-center justify-center rounded-full bg-white shadow h-20 w-20">
+          <span className=" text-gray-600 inline-flex items-center justify-center rounded-full bg-white shadow h-20 w-20">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 40 40"
@@ -57,19 +57,23 @@ const formLogin = () => {
               <rect x="12" y="24" width="6" height="8" rx="1" fill="#fff" />
               <rect x="22" y="24" width="6" height="8" rx="1" fill="#fff" />
               <polygon points="20,6 36,18 4,18" fill="#3b82f6" />
-              <rect x="18" y="28" width="4" height="4" rx="1" fill="#2563eb" />
             </svg>
           </span>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Sistema SEVA - Acceso
+        <h2 className="grid my-6 text-center text-3xl font-extrabold text-gray-900 px-10">
+          <span>
+            Sistema SEVA
+          </span>
+          <span>
+            Acceso
+          </span>
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-sm text-gray-600 px-10">
           Plataforma de gestión académica para estudiantes y profesores
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md mx-5 rounded-md">
         <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
           {/* Pills para selección de rol */}
           <div className="flex mb-6 rounded-md bg-gray-100 p-1">
@@ -165,7 +169,7 @@ const formLogin = () => {
                   value={recuerdame}
                   onChange={(e) => setRecuerdame(e.target.value)}
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className={`h-4 w-4  border-gray-300 rounded cursor-pointer ${role==='ESTUDIANTE' ? 'accent-blue-600' : 'accent-gray-600'}`}
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
                   Recordar mis datos

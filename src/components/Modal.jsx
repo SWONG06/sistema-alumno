@@ -14,7 +14,7 @@ export default function Modal({ isOpen, onClose, children }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-300/80">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-300/80 transition-all">
       <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md relative">
         <button
           onClick={onClose}

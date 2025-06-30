@@ -1,43 +1,58 @@
 'use client';
 
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import alumno from '../../../../lib/estudiante';
 import Link from 'next/link';
 
 export default function CursoDetalleAlumno() {
-  const searchParams = useSearchParams();
+  const [code, setCode] = useState(null);
   const { idCurso } = useParams();
-  const code = searchParams.get('userId');
   const [notas, setNotas] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [asistencias, setAsistencias] = useState(null);
 
   useEffect(() => {
-  const getNotas = async () => {
-    try {
-      const response = await alumno.notasById(code);
-      const cursos = await response.json();
-      setNotas(cursos);
-    } catch (error) {
-      console.error("Ocurrió un error inesperado:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-    const getAsistencias = async () => {
-      try {
-        const response = await alumno.asistenciasById(code);
-        const asistencias = await response.json();
-        // console.log(asistencias);
-        setAsistencias(asistencias);
-      } catch (error) {
-        console.log("Ocurrió un error inesperado: "+error);
+    const getCode = async () => {
+      const data = await fetch(`${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/user`);
+      const result = await data.json();
+      if (result?.id) {
+        setCode(result.id);
+      } else {
+        console.error("No se obtuvo un ID de alumno válido");
       }
-    }  
-    getNotas()
-    getAsistencias()
-  }, [idCurso]);
+    };
+    getCode();
+  }, []);  
+
+  useEffect(() => {
+
+    if (!code) return;
+
+
+    const getAllData = async () => {
+        try {
+          const [notasRes, asistenciasRes] = await Promise.all([
+            alumno.notasById(code),
+            alumno.asistenciasById(code),
+          ]);
+          
+          const notasLis = await notasRes.json();
+          const asists = await asistenciasRes.json();
+
+
+          setNotas(notasLis);
+          setAsistencias(asists);
+
+        } catch (error) {
+          console.error("Error al cargar datos del alumno:", error);
+        }
+      };
+    
+    getAllData();
+    setIsLoading(false);
+
+  }, [code]);
 
   if (isLoading) {
     return (
@@ -84,11 +99,11 @@ export default function CursoDetalleAlumno() {
                 ))
               }
             <div className="ml-auto flex items-center">
-              <Link href={`/alumno?userId=${code}`}>
-                <button className='flex items-center justify-center active:bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-3xl transition duration-200'>
+              <Link href={`/alumno`}>
+                <button className='flex text-sm items-center justify-center active:bg-blue-500 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded-3xl transition duration-200'>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-7 w-7 text-white"
+                    className="h-6 w-6 text-white"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -112,7 +127,7 @@ export default function CursoDetalleAlumno() {
                 <h2 className="text-xl font-semibold text-gray-800">Notas</h2>
               </div>
               
-              <div className="flex justify-evenly gap-20">
+              <div className="grid grid-cols-1 gap-20 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
                 <table className="w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>

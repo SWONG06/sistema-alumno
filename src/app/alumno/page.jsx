@@ -1,83 +1,68 @@
 'use client';
-
 import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import alumno from '../../lib/estudiante';
 
 const Page = () => {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const code = searchParams.get('userId');
   const [activeTab, setActiveTab] = useState('inicio');
   const [notas, setNotas] = useState([]);
   const [asistencias, setAsistencias] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [pagos, setPagos] = useState([]);
+  const [code, setCode] = useState('');
   const [studentInfo, setStudentInfo] = useState({
     // MATRICULAs: [{}],
     // USUARIO: {}
   });
-
-  useEffect(() => {
-    const getStudent= async () => {
-      try {
-        const response = await alumno.alumno(code);
-        const estudiante = await response.json();
-        // console.log(estudiante[0]);
-        setStudentInfo(estudiante[0]);
-        // console.log("xddd : "+estudiante);
-      } catch (error) {
-        console.log("Ocurrió un error inesperado: "+error);
-      }
+useEffect(() => {
+  const getCode = async () => {
+    const data = await fetch(`${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/user`);
+    const result = await data.json();
+    if (result?.id) {
+      setCode(result.id);
+    } else {
+      console.error("No se obtuvo un ID de alumno válido");
     }
-    const getNotas = async () => {
-      try {
-        const response = await alumno.notasById(code);
-        const notas = await response.json();
-        // console.log(notas);
-        setNotas(notas);
-      } catch (error) {
-        console.log("Ocurrió un error inesperado: "+error);
-      }
-    }
-    const getAsistencias = async () => {
-      try {
-        const response = await alumno.asistenciasById(code);
-        const asistencias = await response.json();
-        // console.log(asistencias);
-        setAsistencias(asistencias);
-      } catch (error) {
-        console.log("Ocurrió un error inesperado: "+error);
-      }
-    }
-    const getCursos = async () => {
-      try {
-        const response = await alumno.cursosById(code);
-        const cursos = await response.json();
-        // console.log(cursos);
-        setCursos(cursos);
-      } catch (error) {
-        console.log("Ocurrió un error inesperado: "+error);
-      }
-    }
-    getStudent()
-    getNotas()
-    getAsistencias()
-    getCursos()
-
-    // Datos de ejemplo para pagos
-    setPagos([
-      { id: 1, fecha: '2023-03-15', monto: 1200, estado: 'Pagado' },
-      { id: 2, fecha: '2023-04-10', monto: 800, estado: 'Pagado' },
-      { id: 3, fecha: '2023-05-05', monto: 1000, estado: 'Pendiente' },
-    ]);
-  }, []);
-
-  const handleLogout = () => {
-    // Lógica para cerrar sesión
-    router.push('/login');
   };
+  getCode();
+}, []);
+
+useEffect(() => {
+  if (!code) return;
+
+  const getAllData = async () => {
+    try {
+      const [alumnoRes, notasRes, asistenciasRes, cursosRes] = await Promise.all([
+        alumno.alumno(code),
+        alumno.notasById(code),
+        alumno.asistenciasById(code),
+        alumno.cursosById(code),
+      ]);
+
+      const estudiante = await alumnoRes.json();
+      const notas = await notasRes.json();
+      const asistencias = await asistenciasRes.json();
+      const cursos = await cursosRes.json();
+
+      setStudentInfo(estudiante[0]);
+      setNotas(notas);
+      setAsistencias(asistencias);
+      setCursos(cursos);
+
+      // Pagos de ejemplo
+      setPagos([
+        { id: 1, fecha: '2023-03-15', monto: 1200, estado: 'Pagado' },
+        { id: 2, fecha: '2023-04-10', monto: 800, estado: 'Pagado' },
+        { id: 3, fecha: '2023-05-05', monto: 1000, estado: 'Pendiente' },
+      ]);
+    } catch (error) {
+      console.error("Error al cargar datos del alumno:", error);
+    }
+  };
+
+  getAllData();
+}, [code]);
+
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -92,10 +77,8 @@ const Page = () => {
                   .slice(0, 4)
                   .map((nota) => (
                     <div key={"nota-"+nota?.NOTA?.[0]?.ID_NOTA} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                      <div>
-                        <button className="text-gray-600 hover:text-gray-900 hover:underline focus:outline-2 focus:outline-gray-900 focus:outline-offset-4 rounded-sm">
+                      <div className='text-gray-600'>
                           {nota?.CURSO?.NOMBRE}
-                        </button>
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${parseFloat(nota?.NOTA?.[0]?.PROMEDIOP) > 14.5 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                         {parseFloat(nota?.NOTA?.[0]?.PROMEDIOP)}
@@ -153,7 +136,7 @@ const Page = () => {
         );
       case 'notas':
         return (
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white rounded-lg shadow-md p-6 grid grid-cols-1">
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Mis Notas</h2>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -171,13 +154,16 @@ const Page = () => {
                   .map((nota) => (
                     <tr key={"notad-"+nota?.NOTA?.[0]?.ID_NOTA} className="hover:bg-gray-50 text-center">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <button className="text-gray-600 hover:text-gray-900 hover:underline focus:outline-2 focus:outline-gray-900 focus:outline-offset-4 rounded-sm">{nota?.CURSO?.NOMBRE}</button>
+                        {/* {console.log(nota?.CURSO?.CODIGOCU)} */}
+                        <Link href={`alumno/curso/${nota?.CURSO?.CODIGOCU}`}>
+                          <button className="text-gray-600 hover:text-gray-900 hover:underline focus:outline-2 focus:outline-gray-900 focus:outline-offset-4 rounded-sm">{nota?.CURSO?.NOMBRE}</button>
+                        </Link>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{parseFloat(nota?.NOTA?.[0]?.PROMEDIOP) }</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{parseFloat(nota?.NOTA?.[0]?.PROMEDIOT) }</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{((parseFloat(nota?.NOTA?.[0]?.PROMEDIOP)+parseFloat(nota?.NOTA?.[0]?.PROMEDIOT))/2).toFixed(2) }</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${'A' === 'A' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${(parseFloat(nota?.NOTA?.[0]?.PROMEDIOP)+parseFloat(nota?.NOTA?.[0]?.PROMEDIOT))/2 > 14 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                           {(parseFloat(nota?.NOTA?.[0]?.PROMEDIOP)+parseFloat(nota?.NOTA?.[0]?.PROMEDIOT))/2 > 14 ? 'Aprobado' : 'Desaprobado'}
                         </span>
                       </td>
@@ -223,7 +209,7 @@ const Page = () => {
         return (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Mis Cursos</h2>
-            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-6 ">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 ">
               {cursos?.filter(c => c?.CURSO?.ID_CURSO)
               .map((curso) => (
                 <div key={"cursod-"+curso?.CURSO?.ID_CURSO} className="border box-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
@@ -235,8 +221,8 @@ const Page = () => {
                       <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Créditos: {curso?.CURSO?.CREDITOS}</span>
                       <span className="text-blue-800 py-1 px-2 rounded-sm bg-blue-100">Horas: {curso?.CURSO?.HORAS}</span>
                     </div>
-                    <p className='text-gray-600 mb-4 py-1 px-2 rounded-md bg-gray-100 text-sm'>Cursación: {curso?.CURSACION}</p>
-                    <Link href={`alumno/curso/${curso?.CURSO?.CODIGOCU}?userId=${code}`}>
+                    <p className='text-gray-600 mb-4 py-1 px-2 rounded-md bg-gray-100 text-sm'>N° veces: {curso?.CURSACION}</p>
+                    <Link href={`alumno/curso/${curso?.CURSO?.CODIGOCU}`}>
                       <button className="w-full bg-blue-600 hover:bg-blue-700 transition ring-blue-600 hover:ring-2 ring-offset-2 text-white py-2 px-4 rounded-md duration-300">
                           Ver detalles
                       </button>
@@ -249,7 +235,7 @@ const Page = () => {
         );
       case 'pagos':
         return (
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white rounded-lg shadow-md p-6 grid grid-cols-1">
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Mis Pagos</h2>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -288,7 +274,7 @@ const Page = () => {
         return (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-6">Mi Perfil</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 gap-y-5">
               <div>
                 <h3 className="text-lg font-medium text-gray-800 mb-4">Información Personal</h3>
                 <div className="space-y-4">
@@ -349,8 +335,9 @@ const Page = () => {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-800">{studentInfo.NOMBRES} {studentInfo.APELLIDOS}</h2>
-                  <p className="text-sm text-gray-500">{studentInfo.CARRERA}</p>
+                  <p className='text-gray-400 text-sm'># {studentInfo?.USUARIO?.CODIGOU}</p>
+                  <h2 className="text-lg font-semibold text-gray-800">{studentInfo?.NOMBRES} {studentInfo?.APELLIDOS}</h2>
+                  <p className="text-sm text-gray-500">{studentInfo?.CARRERA}</p>
                 </div>
               </div>
               <div className="grid space-y-2 border-t border-gray-200 pt-4 items-center">
@@ -358,21 +345,21 @@ const Page = () => {
                   <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  Ciclo: {studentInfo.MATRICULAs?.[0]?.CICLO}
+                  Ciclo: {studentInfo?.MATRICULAs?.[0]?.CICLO}
                 </p>
                 <p className="text-sm text-gray-600 flex items-center">
                   <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" />
                     <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M12 6v6l4 2" />
                   </svg>
-                  Periodo: {studentInfo.MATRICULAs?.[0]?.PERIODO}
+                  Periodo: {studentInfo?.MATRICULAs?.[0]?.PERIODO}
                 </p>
                 <p className="text-sm text-gray-600 flex items-center">
                   <svg className="h-4 w-4 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" strokeWidth="2" fill="#e0e7ef" />
                     <path d="M8 12l2 2 4-4" stroke="#34d399" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  Condicion: {studentInfo.MATRICULAs?.[0]?.CONDICION}
+                  Condicion: {studentInfo?.MATRICULAs?.[0]?.CONDICION}
                 </p>                 
               </div>
             </div>
@@ -465,7 +452,7 @@ const Page = () => {
           <div className="flex-1">
             {/* Welcome Banner */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-md p-6 mb-6 text-white">
-              <h2 className="text-2xl font-bold mb-2">¡Bienvenido(a), {studentInfo.NOMBRES}!</h2>
+              <h2 className="text-2xl font-bold mb-2">¡Bienvenido(a), {studentInfo?.NOMBRES}!</h2>
               <p className="opacity-90">Revisa tus notas, asistencias y más en tu panel de estudiante.</p>
             </div>
 

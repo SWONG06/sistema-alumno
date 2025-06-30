@@ -7,7 +7,7 @@ const Login = async (role, code, password, recuerdame) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer token123'          
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_API_SECRET}`
       },
       credentials: 'include',
       mode: 'cors',
@@ -25,7 +25,7 @@ const refresh = async () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer token123'
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_API_SECRET}`
         },
         credentials: 'include',
         mode: 'cors',
@@ -42,7 +42,7 @@ const logout = async () => {
     mode: 'cors',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer token123'
+      'Authorization': `Bearer ${process.env.NEXT_PUBLIC_API_SECRET}`
     }
   });
 

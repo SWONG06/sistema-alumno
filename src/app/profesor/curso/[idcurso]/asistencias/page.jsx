@@ -1,72 +1,56 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import docente from '../../../../../lib/profesor';
+import Link from 'next/link';
 
 export default function CargarNotasEstudiante() {
-  const { idCurso, idEstudiante } = useParams();
+  const idcurso = useParams().idcurso;
+  const fecha = atob(useSearchParams().get('fecha'));
   const router = useRouter();
+
+  const [code, setCode] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [curso, setCurso] = useState(null);
-  const [estudiante, setEstudiante] = useState(null);
-  const [notas, setNotas] = useState([]);
+  const [estudiantes, setEstudiantes] = useState(null);
   const [error, setError] = useState('');
 
+
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        // Simulación de datos - reemplazar con llamadas reales a la API
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Datos del curso
-        const data = {
-          id: idCurso,
-          titulo: 'Matemática Básica I',
-          profesor: 'Lic. Juan Pérez',
-          notas: [
-            { id: 1, nombre: 'Examen Parcial', nota: 14 },
-            { id: 2, nombre: 'Trabajo en grupo', nota: 16 },
-            { id: 3, nombre: 'Examen Final', nota: 13 }
-          ],
-          asistencias: [
-            { id: 1, fecha: '2025-06-01', estado: 'Asistió' },
-            { id: 2, fecha: '2025-06-03', estado: 'Falta' },
-            { id: 3, fecha: '2025-06-05', estado: 'Asistió' }
-          ]
-        };
-
-        // Datos del estudiante
-        const estudianteData = {
-          id: idEstudiante,
-          codigo: 'E2023001',
-          nombres: 'María',
-          apellidos: 'Gonzales Pérez',
-          carrera: 'Ingeniería de Software',
-          ciclo: 5
-        };
-
-        // Notas existentes
-        const notasData = [
-          { id: 1, tipo: 'PRACTICA', nombre: 'Práctica 1', valor: 15, max: 20, editable: true },
-          { id: 2, tipo: 'PRACTICA', nombre: 'Práctica 2', valor: 18, max: 20, editable: true },
-          { id: 3, tipo: 'TEORIA', nombre: 'Examen Parcial', valor: 12, max: 20, editable: true },
-          { id: 4, tipo: 'TEORIA', nombre: 'Examen Final', valor: null, max: 20, editable: true }
-        ];
-
-        setCurso(data);
-        setEstudiante(estudianteData);
-        setNotas(notasData);
-      } catch (err) {
-        setError('Error al cargar los datos del estudiante');
-        console.error(err);
-      } finally {
-        setLoading(false);
+    const getCode = async () => {
+      const data = await fetch(`${process.env.NEXT_PUBLIC_LOCAL_API_URL}/api/user`);
+      const result = await data.json();
+      if (result?.id) {
+        setCode(result.id);
+      } else {
+        console.error("No se obtuvo un ID de alumno válido");
       }
     };
+    getCode();
+  }, []);  
 
-    fetchData();
-  }, [idCurso, idEstudiante]);
+  useEffect(() => {
+    if (!code) return;
+
+    const getAllData = async () => {
+        try {
+          const [alumnosRes] = await Promise.all([
+            docente.alumnosById(code,idcurso)
+          ]);
+          
+          const alumnos = await alumnosRes.json();
+
+          setEstudiantes(alumnos);
+
+        } catch (error) {
+          console.error("Error al cargar datos del alumno:", error);
+        }
+      };
+    
+    getAllData();
+    setLoading(false);
+
+  }, [code]);
 
   const handleNotaChange = (id, value) => {
     setNotas(notas.map(nota => 
@@ -95,7 +79,7 @@ export default function CargarNotasEstudiante() {
       console.log('Notas a guardar:', notas);
       
       // Redirigir después de guardar
-      router.push(`/dashboard/teacher/cursos/${idCurso}`);
+      router.push(`/dashboard/teacher/cursos/${idcurso}`);
     } catch (err) {
       setError('Error al guardar las notas');
       console.error(err);
@@ -116,13 +100,13 @@ export default function CargarNotasEstudiante() {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <p className="mt-4 text-lg text-gray-700">Cargando información del estudiante...</p>
+          <p className="mt-4 text-lg text-gray-700">Cargando información de asistencias...</p>
         </div>
       </div>
     );
   }
 
-  if (!curso || !estudiante) {
+  if (!estudiantes) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="text-center">
@@ -142,25 +126,26 @@ export default function CargarNotasEstudiante() {
           {/* Header */}
           <div className="flex bg-gray-600 px-10 py-5 items-center sticky top-0 transition-all z-10 rounded-t-lg">
             <div className='block'>
-              <h1 className="text-2xl font-bold text-white">{curso.titulo} - MT05</h1>
-              <p className="text-gray-100">Fecha: 11/06/24</p>
+              <h1 className="text-2xl font-bold text-white">{estudiantes?.[0]?.CURSO?.NOMBRE} - {estudiantes?.[0]?.CURSO?.CODIGOCU}</h1>
+              <p className="text-gray-100">Fecha: {fecha}</p>
             </div>
             <div className="ml-auto flex items-center">
-              <button 
-                onClick={() => router.push(`/dashboard/teacher/cursos/${idCurso}`)}
-                className='flex items-center justify-center active:bg-gray-500 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-3xl transition duration-200'
-              >
+              <Link href={`/profesor/curso/${idcurso}`}>
+              <button
+                className='flex text-sm items-center justify-center active:bg-gray-500 hover:bg-gray-700 text-white font-semibold py-2 px-3 rounded-3xl transition duration-200'
+                >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-7 w-7 text-white"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
-                >
+                  >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 Regresar
               </button>
+                </Link>
             </div>
           </div>
 
@@ -203,35 +188,38 @@ export default function CargarNotasEstudiante() {
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        <tr key={"id"} className='hover:bg-gray-50'>
+                  {estudiantes?.filter(c => c?.ID_CRONOGRAMA)
+                  .map((estudiante, index) => (                      
+                        <tr key={estudiante?.ID_CRONOGRAMA} className='hover:bg-gray-50'>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            Jose Juarez
+                            {estudiante?.MATRICULA?.ESTUDIANTE?.NOMBRES+' '+estudiante?.MATRICULA?.ESTUDIANTE?.APELLIDOS}
                             </td>
                             <td className='flex justify-evenly  items-center px-6 py-4 whitespace-nowrap text-sm font-medium'>
-                            <div className='flex items-center space-x-2 justify-evenly'>
-                            <span className="px-2 py-1 inline-flex leading-5 font-semibold rounded-full bg-green-100 text-green-800 items-center gap-1">
-                                <input type="radio" name='asistencia_{id}' id='option1' value={1} required/>
-                                <label htmlFor="option1">Asistencia</label>
-                            </span>
-                            </div>
-                            <div className='flex items-center space-x-2 justify-evenly'>
-                            <span className="px-2 py-1 inline-flex leading-5 font-semibold rounded-full bg-red-100 text-red-800 items-center gap-1">
-                                <input type="radio" name='asistencia_{id}' id='option2' value={2} required/>
-                                <label htmlFor="option2">Falta</label>
-                            </span>
-                            </div>
-                            <div className='flex items-center space-x-2 justify-evenly'>
-                            <span className="px-2 py-1 inline-flex leading-5 font-semibold rounded-full bg-amber-100 text-amber-800 items-center gap-1">
-                                <input type="radio" name='asistencia_{id}' id='option3' value={3} required/>
-                                <label htmlFor="option3">Tardanza</label>
-                            </span>
-                            </div>
+                              <div className='flex items-center space-x-2 justify-evenly'>
+                              <span className="px-2 py-1 inline-flex leading-5 font-semibold rounded-full bg-green-100 text-green-800 items-center gap-1">
+                                  <input type="radio" name={`asistencia-${index}`} id={`option-${index}-1`} value={1} required/>
+                                  <label htmlFor={`option-${index}-1`}>Asistencia</label>
+                              </span>
+                              </div>
+                              <div className='flex items-center space-x-2 justify-evenly'>
+                              <span className="px-2 py-1 inline-flex leading-5 font-semibold rounded-full bg-red-100 text-red-800 items-center gap-1">
+                                  <input type="radio" name={`asistencia-${index}`} id={`option-${index}-2`} value={2} required/>
+                                  <label htmlFor={`option-${index}-2`}>Falta</label>
+                              </span>
+                              </div>
+                              <div className='flex items-center space-x-2 justify-evenly'>
+                              <span className="px-2 py-1 inline-flex leading-5 font-semibold rounded-full bg-amber-100 text-amber-800 items-center gap-1">
+                                  <input type="radio" name={`asistencia-${index}`} id={`option-${index}-3`} value={3} required/>
+                                  <label htmlFor={`option-${index}-3`}>Tardanza</label>
+                              </span>
+                              </div>
                             </td>
                         </tr>
+                    ))}
                     </tbody>
                     </table>
                     <div className='w-full flex justify-end items-center'>
-                        <button className='mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200'>
+                        <button className='mt-4 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200'>
                             Guardar Asistencia
                         </button>
                     </div>
