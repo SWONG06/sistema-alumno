@@ -52,7 +52,7 @@ export default function CursoDetalleAlumno() {
     getAllData();
     setIsLoading(false);
 
-  }, [code]);
+  }, [code, notas]);
 
   if (isLoading) {
     return (
